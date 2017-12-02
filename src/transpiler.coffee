@@ -1,58 +1,62 @@
 'use strict'
 
 
-transpile = (node) ->
-	switch node.type
-		when 'number'
-			"makeValue(#{node.value})"
+transpilers = {
+	'number': ({ value }) ->
+		"makeValue(#{value})"
 
-		when 'if'
-			"(#{transpile node.test}) ? (#{transpile node.consequent}) : (#{transpile node.alternate})"
+	'if': ({ test, alternate, consequent }) ->
+		"(#{transpile test}) ? (#{transpile consequent}) : (#{transpile alternate})"
 
-		when 'let'
+	'let': ({ name, body, expression }) ->
+		"""
+			[&](auto #{name}){
+				return #{transpile body};
+			}(#{transpile expression})
+		"""
+
+	'var': ({ name }) ->
+		name
+
+	'lambda': ({ parameter, body }) ->
 			"""
-				[&](auto #{node.name}){
-					return #{transpile node.body};
-				}(#{transpile node.expression})
-			"""
-
-		when 'var'
-			node.name
-
-		when 'lambda'
-			"""
-				makeValue([=](auto #{node.parameter}) {
-					return #{transpile node.body};
+				makeValue([=](auto #{parameter}) {
+					return #{transpile body};
 				})
 			"""
 
-		when 'call'
-			"makeValue(#{transpile node.callee})->call(#{transpile node.argument})"
+	'call': ({ callee, argument }) ->
+			"makeValue(#{transpile callee})->call(#{transpile argument})"
 
-		when '+'
+	'+': ({ left, right }) ->
 			"""
-				(makeValue(#{transpile node.left}->getNumber() + #{transpile node.right}->getNumber()))
-			"""
-
-		when '-'
-			"""
-				(makeValue(#{transpile node.left}->getNumber() - #{transpile node.right}->getNumber()))
+				(makeValue(#{transpile left}->getNumber() + #{transpile right}->getNumber()))
 			"""
 
-		when 'pair'
+	'-': ({ left, right }) ->
 			"""
-				makeValue(#{transpile node.first}, #{transpile node.second})
-			"""
-
-		when 'first'
-			"""
-				#{transpile node.expression}->getFirst()
+				(makeValue(#{transpile left}->getNumber() - #{transpile right}->getNumber()))
 			"""
 
-		when 'second'
+	'pair': ({ first, second }) ->
 			"""
-				#{transpile node.expression}->getSecond()
+				makeValue(#{transpile first}, #{transpile second})
 			"""
+
+	'first': ({ expression }) ->
+			"""
+				#{transpile expression}->getFirst()
+			"""
+
+	'second': ({ expression }) ->
+			"""
+				#{transpile expression}->getSecond()
+			"""
+}
+
+
+transpile = (node) ->
+	transpilers[node.type] node
 
 
 transpileRoot = (node) ->
