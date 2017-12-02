@@ -91,44 +91,40 @@
 		);
 	}
 
-	function buildLet(let_) {
-		// (let x 123 (let y 456 789))
+	function buildLet({ children }) {
 		// (let ((x 123) (y 456)) 789)
-		if (let_.children[1].token.type !== '(') {
-			throw new Error('missing binding list for let expression');
+		if (children[1].token.type !== 'open') {
+			throw new Error('missing binding list for let expression')
 		}
 
-		var list = let_.children[1].children;
+		const bindings = children[1].children
 
-		if (list.length < 1) {
-			throw new Error('binding list must contain at least 1 binding');
+		if (bindings.length < 1) {
+			throw new Error('binding list must contain at least 1 binding')
 		}
 
-		list.forEach(function (pair) {
-			if (pair.token.type !== '(') {
-				throw new Error('binding list items are pairs of an identifier and an expression');
+		bindings.forEach((pair) => {
+			if (pair.token.type !== 'open') {
+				throw new Error('binding list items are pairs of an identifier and an expression')
 			}
 
 			if (pair.children.length !== 2) {
-				throw new Error('binding list items must have 2 members, an identifier and an expression');
+				throw new Error('binding list items must have 2 members, an identifier and an expression')
 			}
 
 			if (pair.children[0].token.type !== 'identifier') {
-				throw new Error('cannot bind to non-identifiers');
+				throw new Error('cannot bind to non-identifiers')
 			}
-		});
+		})
 
-		var ret = buildAst(let_.children[2]);
-		for (var i = list.length - 1; i >= 0; i--) {
-			var pair = list[i];
-			ret = $let(
-				pair.children[0].token.value,
-				buildAst(pair.children[1]),
-				ret
-			);
+		return {
+			type: 'let',
+			bindings: bindings.map(({ children }) => ({
+				name: children[0].token.value,
+				expression: buildAst(children[1]),
+			})),
+			body: buildAst(children[2]),
 		}
-
-		return ret;
 	}
 
 	function buildOperator({ children }) {

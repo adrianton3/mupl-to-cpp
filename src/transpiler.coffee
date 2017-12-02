@@ -14,11 +14,15 @@ transpilers = {
 	'if': ({ test, alternate, consequent }) ->
 		"(#{transpile test}) ? (#{transpile consequent}) : (#{transpile alternate})"
 
-	'let': ({ name, body, expression }) ->
+	'let': ({ bindings, body }) ->
+		declarations = bindings.map ({ name, expression }) ->
+			"const auto #{name} = #{transpile expression};"
+
 		"""
-			[&](auto #{name}){
+			[&]{
+				#{declarations.join '\n'}
 				return #{transpile body};
-			}(#{transpile expression})
+			}()
 		"""
 
 	'var': ({ name }) ->
