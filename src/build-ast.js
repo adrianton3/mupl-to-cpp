@@ -28,8 +28,6 @@
 	var $fun = makeNode('fun', ['name', 'parameter', 'body']);
 	var $let = makeNode('let', ['name', 'expression', 'body']);
 	var $if = makeNode('if', ['test', 'consequent', 'alternate']);
-	var $add = makeNode('+', ['left', 'right']);
-	var $sub = makeNode('-', ['left', 'right']);
 	var $var = makeNode('var', ['name']);
 	var $number = makeNode('number', ['value']);
 	var $pair = makeNode('pair', ['first', 'second']);
@@ -133,9 +131,9 @@
 		return ret;
 	}
 
-	function buildAdd({ children }) {
+	function buildOperator({ children }) {
 		if (children.length < 3) {
-			throw new Error('+ takes at least 2 arguments')
+			throw new Error('math operator takes at least 2 arguments')
 		}
 
 		const terms = []
@@ -145,7 +143,8 @@
 		}
 
 		return {
-			type: '+',
+			// hack, removes the $
+			type: children[0].token.value.slice(1),
 			terms,
 		}
 	}
@@ -177,12 +176,9 @@
 							buildAst(tree.children[3])
 						);
 					case '$+': // used for debugging only
-						return buildAdd(tree)
-					case '$-': // used for debugging only
-						return $sub(
-							buildAst(tree.children[1]),
-							buildAst(tree.children[2])
-						);
+					case '$-':
+					case '$*':
+						return buildOperator(tree)
 					case '$pair': // used for debugging only
 						return $pair(
 							buildAst(tree.children[1]),
@@ -221,8 +217,6 @@
 			$fun,
 			$let,
 			$if,
-			$add,
-			$sub,
 			$var,
 			$number,
 		}

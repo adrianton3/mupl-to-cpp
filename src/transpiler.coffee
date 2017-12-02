@@ -1,6 +1,12 @@
 'use strict'
 
 
+makeOperator = (operator) ->
+	({ terms }) ->
+		transpiled = terms.map (term) -> "#{transpile term}->getNumber()"
+		"makeValue(#{transpiled.join " #{operator} "})"
+
+
 transpilers = {
 	'number': ({ value }) ->
 		"makeValue(#{value})"
@@ -28,15 +34,9 @@ transpilers = {
 	'call': ({ callee, argument }) ->
 			"makeValue(#{transpile callee})->call(#{transpile argument})"
 
-	'+': ({ terms }) ->
-		transpiled = terms.map (term) -> "#{transpile term}->getNumber()"
-		"makeValue(#{transpiled.join ' + '})"
-
-
-	'-': ({ left, right }) ->
-			"""
-				(makeValue(#{transpile left}->getNumber() - #{transpile right}->getNumber()))
-			"""
+	'+': makeOperator '+'
+	'-': makeOperator '-'
+	'*': makeOperator '*'
 
 	'pair': ({ first, second }) ->
 			"""
