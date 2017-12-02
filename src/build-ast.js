@@ -2,8 +2,6 @@
 	'use strict';
 
 	var subs = {
-		'$+': 2,
-		'$-': 2,
 		'if': 3,
 		'let': 2,
 		'lambda': 2,
@@ -135,6 +133,23 @@
 		return ret;
 	}
 
+	function buildAdd({ children }) {
+		if (children.length < 3) {
+			throw new Error('+ takes at least 2 arguments')
+		}
+
+		const terms = []
+
+		for (let i = 1; i < children.length; i++) {
+			terms.push(buildAst(children[i]))
+		}
+
+		return {
+			type: '+',
+			terms,
+		}
+	}
+
 	function buildAst(tree) {
 		switch (tree.token.type) {
 			case 'number':
@@ -162,10 +177,7 @@
 							buildAst(tree.children[3])
 						);
 					case '$+': // used for debugging only
-						return $add(
-							buildAst(tree.children[1]),
-							buildAst(tree.children[2])
-						);
+						return buildAdd(tree)
 					case '$-': // used for debugging only
 						return $sub(
 							buildAst(tree.children[1]),

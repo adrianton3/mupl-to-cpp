@@ -28,10 +28,10 @@ transpilers = {
 	'call': ({ callee, argument }) ->
 			"makeValue(#{transpile callee})->call(#{transpile argument})"
 
-	'+': ({ left, right }) ->
-			"""
-				(makeValue(#{transpile left}->getNumber() + #{transpile right}->getNumber()))
-			"""
+	'+': ({ terms }) ->
+		transpiled = terms.map (term) -> "#{transpile term}->getNumber()"
+		"makeValue(#{transpiled.join ' + '})"
+
 
 	'-': ({ left, right }) ->
 			"""

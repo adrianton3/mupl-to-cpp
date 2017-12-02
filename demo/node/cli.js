@@ -1,5 +1,6 @@
 'use strict'
 
+const fs = require('fs')
 const { Tokenizer, Parser } = require('../../lib/espace.min')
 const { buildAst } = require('../../src/build-ast').muplToCpp
 const { transpile } = require('../../src/transpiler').muplToCpp
