@@ -30,6 +30,7 @@
 	var $if = makeNode('if', ['test', 'consequent', 'alternate']);
 	var $var = makeNode('var', ['name']);
 	var $number = makeNode('number', ['value']);
+	var $less = makeNode('<', ['left', 'right']);
 	var $pair = makeNode('pair', ['first', 'second']);
 	var $first = makeNode('first', ['expression']);
 	var $second = makeNode('second', ['expression']);
@@ -70,7 +71,7 @@
 			throw new Error('function name must be an alphanum');
 		}
 
-		if (fun.children[2].token.type !== '(') {
+		if (fun.children[2].token.type !== 'open') {
 			throw new Error('missing parameter list for function');
 		}
 
@@ -185,6 +186,11 @@
 					case '$-':
 					case '$*':
 						return buildOperator(tree)
+					case '$<':
+						return $less(
+							buildAst(tree.children[1]),
+							buildAst(tree.children[2])
+						)
 					// used for debugging only
 					case '$pair':
 						return $pair(

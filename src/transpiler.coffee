@@ -12,7 +12,7 @@ transpilers = {
 		"makeValue(#{value})"
 
 	'if': ({ test, alternate, consequent }) ->
-		"(#{transpile test}) ? (#{transpile consequent}) : (#{transpile alternate})"
+		"(#{transpile test}->getBoolean()) ? (#{transpile consequent}) : (#{transpile alternate})"
 
 	'let': ({ bindings, body }) ->
 		declarations = bindings.map ({ name, expression }) ->
@@ -29,23 +29,39 @@ transpilers = {
 		name
 
 	'lambda': ({ parameter, body }) ->
-			"""
-				makeValue([=](auto #{parameter}) {
+		"""
+			makeValue([=](auto #{parameter}) {
+				return #{transpile body};
+			})
+		"""
+
+	'fun': ({ name, parameter, body }) ->
+		"""
+			[&]{
+				ValuePtr #{name} = makeValue([](ValuePtr) { return null; });
+				const auto _fun = [=](auto #{parameter}) {
 					return #{transpile body};
-				})
-			"""
+				};
+
+				static_cast<Function&>(*#{name}).set(_fun);
+				return #{name};
+			}()
+		"""
 
 	'call': ({ callee, argument }) ->
-			"makeValue(#{transpile callee})->call(#{transpile argument})"
+		"#{transpile callee}->call(#{transpile argument})"
 
 	'+': makeOperator '+'
 	'-': makeOperator '-'
 	'*': makeOperator '*'
 
+	'<': ({ left, right }) ->
+		"makeBoolean(#{transpile left}->getNumber() < #{transpile right}->getNumber())"
+
 	'null': -> 'Null'
 
 	'null?': ({ expression }) ->
-		"makeValue(#{transpile expression}->isNull())"
+		"makeBoolean(#{transpile expression}->isNull())"
 
 	'pair': ({ first, second }) ->
 		"makeValue(#{transpile first}, #{transpile second})"

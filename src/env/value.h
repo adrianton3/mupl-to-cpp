@@ -8,7 +8,7 @@ using NumericType = int;
 
 class Value;
 
-using ValuePtr = const std::shared_ptr<const Value>;
+using ValuePtr = const std::shared_ptr<Value>;
 
 using UnaryFunction = std::function<ValuePtr (ValuePtr)>;
 
@@ -204,6 +204,10 @@ public:
         return function(argument);
     }
 
+    void set(UnaryFunction value) {
+        function = value;
+    }
+
 private:
     UnaryFunction function;
 };
@@ -214,7 +218,7 @@ ValuePtr makeValue(NumericType value) {
     return std::make_shared<Number>(value);
 }
 
-ValuePtr makeValue(bool value) {
+ValuePtr makeBoolean(bool value) {
     return std::make_shared<Boolean>(value);
 }
 
