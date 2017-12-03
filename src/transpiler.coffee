@@ -1,11 +1,18 @@
 'use strict'
 
 
-toNumber = (node) ->
-	if node.type in ['number', '+', '-', '*']
-		transpile node, { raw: true }
-	else
-		"#{transpile node}->getNumber()"
+tryUnwrap = (conversion, matchingNodes) ->
+	(node) ->
+		if matchingNodes.includes node.type
+			transpile node, { raw: true }
+		else
+			"#{transpile node}->#{conversion}()"
+			
+			
+toNumber = tryUnwrap 'getNumber', ['number', '+', '-', '*']
+
+
+toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', 'null?']
 
 
 makeOperator = (operator) ->
@@ -26,7 +33,7 @@ transpilers = {
 			"makeValue(#{value})"
 
 	'if': ({ test, alternate, consequent }) ->
-		"(#{transpile test}->getBoolean()) ? (#{transpile consequent}) : (#{transpile alternate})"
+		"(#{toBoolean test}) ? (#{transpile consequent}) : (#{transpile alternate})"
 
 	'let': ({ bindings, body }) ->
 		declarations = bindings.map ({ name, expression }) ->
@@ -56,7 +63,6 @@ transpilers = {
 				const auto _fun = [=](auto #{parameter}) {
 					return #{transpile body};
 				};
-
 				static_cast<Function&>(*#{name}).set(_fun);
 				return #{name};
 			}()
@@ -66,16 +72,24 @@ transpilers = {
 		"#{transpile callee}->call(#{transpile argument})"
 
 	'+': makeOperator '+'
+
 	'-': makeOperator '-'
+
 	'*': makeOperator '*'
 
-	'<': ({ left, right }) ->
-		"makeBoolean(#{toNumber left} < #{toNumber right})"
+	'<': ({ left, right }, { raw }) ->
+		if raw
+			"(#{toNumber left} < #{toNumber right})"
+		else
+			"makeBoolean(#{toNumber left} < #{toNumber right})"
 
 	'null': -> 'Null'
 
-	'null?': ({ expression }) ->
-		"makeBoolean(#{transpile expression}->isNull())"
+	'null?': ({ expression }, { raw }) ->
+		if raw
+			"#{transpile expression}->isNull()"
+		else
+			"makeBoolean(#{transpile expression}->isNull())"
 
 	'pair': ({ first, second }) ->
 		"makeValue(#{transpile first}, #{transpile second})"
