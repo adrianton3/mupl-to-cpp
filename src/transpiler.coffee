@@ -1,15 +1,29 @@
 'use strict'
 
 
+toNumber = (node) ->
+	if node.type in ['number', '+', '-', '*']
+		transpile node, { raw: true }
+	else
+		"#{transpile node}->getNumber()"
+
+
 makeOperator = (operator) ->
-	({ terms }) ->
-		transpiled = terms.map (term) -> "#{transpile term}->getNumber()"
-		"makeValue(#{transpiled.join " #{operator} "})"
+	({ terms }, { raw }) ->
+		transpiled = terms.map toNumber
+
+		if raw
+			"(#{transpiled.join " #{operator} "})"
+		else
+			"makeValue(#{transpiled.join " #{operator} "})"
 
 
 transpilers = {
-	'number': ({ value }) ->
-		"makeValue(#{value})"
+	'number': ({ value }, { raw }) ->
+		if raw
+			"#{value}"
+		else
+			"makeValue(#{value})"
 
 	'if': ({ test, alternate, consequent }) ->
 		"(#{transpile test}->getBoolean()) ? (#{transpile consequent}) : (#{transpile alternate})"
@@ -56,7 +70,7 @@ transpilers = {
 	'*': makeOperator '*'
 
 	'<': ({ left, right }) ->
-		"makeBoolean(#{transpile left}->getNumber() < #{transpile right}->getNumber())"
+		"makeBoolean(#{toNumber left} < #{toNumber right})"
 
 	'null': -> 'Null'
 
@@ -74,8 +88,8 @@ transpilers = {
 }
 
 
-transpile = (node) ->
-	transpilers[node.type] node
+transpile = (node, options = {}) ->
+	transpilers[node.type] node, options
 
 
 transpileRoot = (node) ->
