@@ -42,20 +42,19 @@ transpilers = {
 	'-': makeOperator '-'
 	'*': makeOperator '*'
 
+	'null': -> 'Null'
+
+	'null?': ({ expression }) ->
+		"makeValue(#{transpile expression}->isNull())"
+
 	'pair': ({ first, second }) ->
-			"""
-				makeValue(#{transpile first}, #{transpile second})
-			"""
+		"makeValue(#{transpile first}, #{transpile second})"
 
 	'first': ({ expression }) ->
-			"""
-				#{transpile expression}->getFirst()
-			"""
+		"#{transpile expression}->getFirst()"
 
 	'second': ({ expression }) ->
-			"""
-				#{transpile expression}->getSecond()
-			"""
+		"#{transpile expression}->getSecond()"
 }
 
 

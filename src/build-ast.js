@@ -145,6 +145,15 @@
 		}
 	}
 
+	function buildList({ children }) {
+		let list = $var('null')
+		for (let i = children.length - 1; i > 0; i--) {
+			list = $pair(buildAst(children[i]), list)
+		}
+
+		return list
+	}
+
 	function buildAst(tree) {
 		switch (tree.token.type) {
 			case 'number':
@@ -171,20 +180,31 @@
 							buildAst(tree.children[2]),
 							buildAst(tree.children[3])
 						);
-					case '$+': // used for debugging only
+					// used for debugging only
+					case '$+':
 					case '$-':
 					case '$*':
 						return buildOperator(tree)
-					case '$pair': // used for debugging only
+					// used for debugging only
+					case '$pair':
 						return $pair(
 							buildAst(tree.children[1]),
 							buildAst(tree.children[2])
 						);
-					case '$first': // used for debugging only
+					case '$list':
+						return buildList(tree)
+					case '$null?':
+						return {
+							type: 'null?',
+							expression: buildAst(tree.children[1]),
+						}
+					// used for debugging only
+					case '$first':
 						return $first(
 							buildAst(tree.children[1])
 						);
-					case '$second': // used for debugging only
+					// used for debugging only
+					case '$second':
 						return $second(
 							buildAst(tree.children[1])
 						);
