@@ -36,60 +36,55 @@
 	var $second = makeNode('second', ['expression']);
 
 	function buildCall(call) {
-		// (call (call (call callee x) y) z)
 		// (callee x y z)
-		var ret = buildAst(call.children[0]);
-		for (var i = 1; i < call.children.length; i++) {
-			ret = $call(ret, buildAst(call.children[i]));
+		return {
+			type: 'call',
+			callee: buildAst(call.children[0]),
+			args: call.children.slice(1).map(buildAst),
 		}
-		return ret;
 	}
 
 	function buildLambda(lambda) {
-		// (lambda x (lambda y (lambda z body)))
 		// (lambda (x y z) body)
-		if (lambda.children[1].token.type !== '(') {
-			throw new Error('missing parameter list for anonymous function');
+		if (lambda.children[1].type !== 'list') {
+			throw new Error('missing parameter list for anonymous function')
 		}
 
-		var params = lambda.children[1].children;
-		var ret = buildAst(lambda.children[2]);
-		for (var i = params.length - 1; i >= 0; i--) {
-			if (params[i].token.type !== 'identifier') {
-				throw new Error('formal parameters must be alphanums');
+		const parameters = lambda.children[1].children
+
+		parameters.forEach((parameter) => {
+			if (parameter.type !== 'atom' || parameter.token.type != 'identifier') {
+				throw new Error('formal parameters must be alphanums')
 			}
+		})
 
-			ret = $lambda(params[i].token.value, ret);
+		return {
+			type: 'lambda',
+			parameters: parameters.map((parameter) => parameter.token.value),
+			body: buildAst(lambda.children[2]),
 		}
-		return ret;
 	}
 
 	function buildFun(fun) {
-		// (fun f x (lambda y (lambda z body)))
 		// (fun f (x y z) body)
-		if (fun.children[1].token.type !== 'identifier') {
-			throw new Error('function name must be an alphanum');
+		if (fun.children[1].type !== 'atom' || fun.children[1].token.type !== 'identifier') {
+			throw new Error('function name must be an alphanum')
 		}
 
-		if (fun.children[2].token.type !== 'open') {
-			throw new Error('missing parameter list for function');
-		}
+		const parameters = fun.children[2].children
 
-		var params = fun.children[2].children;
-		var ret = buildAst(fun.children[3]);
-		for (var i = params.length - 1; i >= 1; i--) {
-			if (params[i].token.type !== 'identifier') {
-				throw new Error('formal parameters must be alphanums');
+		parameters.forEach((parameter) => {
+			if (parameter.type !== 'atom' || parameter.token.type != 'identifier') {
+				throw new Error('formal parameters must be alphanums')
 			}
+		})
 
-			ret = $lambda(params[i].token.value, ret);
+		return {
+			type: 'fun',
+			name: fun.children[1].token.value,
+			parameters: parameters.map((parameter) => parameter.token.value),
+			body: buildAst(fun.children[3]),
 		}
-
-		return $fun(
-			fun.children[1].token.value,
-			params[i].token.value,
-			ret
-		);
 	}
 
 	function buildLet({ children }) {
@@ -185,12 +180,8 @@
 					case '$+':
 					case '$-':
 					case '$*':
-						return buildOperator(tree)
 					case '$<':
-						return $less(
-							buildAst(tree.children[1]),
-							buildAst(tree.children[2])
-						)
+						return buildOperator(tree)
 					// used for debugging only
 					case '$pair':
 						return $pair(
