@@ -6,6 +6,11 @@
 else
 	window
 
+{ muplToCpp: { encodeIdentifier } } = if typeof module != "undefined" and module.exports
+	require './safe-identifiers'
+else
+	window
+
 
 builtIns = new Set [
 	'+'
@@ -59,7 +64,7 @@ transpilers = {
 
 	'let': ({ bindings, body }, env) ->
 		declarations = bindings.map ({ name, expression }) ->
-			"const auto #{name} = #{transpile expression, env};"
+			"const auto #{encodeIdentifier name} = #{transpile expression, env};"
 
 		newEnv = env.add (bindings.map ({ name }) -> name)...
 
@@ -71,12 +76,12 @@ transpilers = {
 		"""
 
 	'var': ({ name }) ->
-		name
+		encodeIdentifier name
 
 	'lambda': ({ parameters, body }, env) ->
 		step = (prev, parameter) ->
 			"""
-				makeValue([=](auto #{parameter}) {
+				makeValue([=](auto #{encodeIdentifier parameter}) {
 					return #{prev};
 				})
 			"""
@@ -87,7 +92,7 @@ transpilers = {
 	'fun': ({ name, parameters, body }, env) ->
 		step = (prev, parameter) ->
 			"""
-				makeValue([=](auto #{parameter}) {
+				makeValue([=](auto #{encodeIdentifier parameter}) {
 					return #{prev};
 				})
 			"""
@@ -97,12 +102,12 @@ transpilers = {
 
 		"""
 			[&]{
-				ValuePtr #{name} = makeValue([](ValuePtr) { return null; });
-				const auto _fun = [=](auto #{parameters[0]}) {
+				ValuePtr #{encodeIdentifier name} = makeValue([](ValuePtr) { return null; });
+				const auto _fun = [=](auto #{encodeIdentifier parameters[0]}) {
 					return #{rest};
 				};
-				static_cast<Function&>(*#{name}).set(_fun);
-				return #{name};
+				static_cast<Function&>(*#{encodeIdentifier name}).set(_fun);
+				return #{encodeIdentifier name};
 			}()
 		"""
 
