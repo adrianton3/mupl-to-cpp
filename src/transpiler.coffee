@@ -75,20 +75,25 @@ makeRelational = (operator) ->
 		transpiled.push toNumber terms[terms.length - 1], env
 
 
-		expression = '[&]{\n'
-
-		nonVars.forEach ({ index, term }) ->
-			expression += "const auto _term_#{index} = #{toNumber term, env};\n"
-			return
-
-		expression += "return #{transpiled[0]}"
+		comparisons = [transpiled[0]]
 
 		for i in [begin...end]
-			expression += " #{operator} #{transpiled[i]} && #{transpiled[i]}"
+			comparisons.push "#{operator} #{transpiled[i]} && #{transpiled[i]}"
 
-		expression += " #{operator} #{transpiled[transpiled.length - 1]};\n"
+		comparisons.push "#{operator} #{transpiled[transpiled.length - 1]}"
 
-		expression += '}()'
+		expression = if nonVars.length == 0
+				comparisons.join ' '
+			else
+				declarations = nonVars.map ({ index, term }) ->
+						"const auto _term_#{index} = #{toNumber term, env};"
+
+				"""
+					[&]{
+						#{declarations.join '\n'}
+						return #{comparisons.join ' '};
+					}()
+				"""
 
 		if raw
 			"(#{expression})"
