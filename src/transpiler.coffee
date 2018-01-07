@@ -39,7 +39,7 @@ tryUnwrap = (conversion, matchingNodes) ->
 toNumber = tryUnwrap 'getNumber', ['number', '+', '-', '*']
 
 
-toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', 'null?']
+toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', '>', 'null?']
 
 
 makeOperator = (operator) ->
@@ -50,6 +50,50 @@ makeOperator = (operator) ->
 			"(#{transpiled.join " #{operator} "})"
 		else
 			"makeValue(#{transpiled.join " #{operator} "})"
+
+
+makeRelational = (operator) ->
+	({ terms }, env, { raw }) ->
+		nonVars = []
+		transpiled = []
+
+		begin = 1
+		end = terms.length - 1
+
+		transpiled.push toNumber terms[0], env
+
+		for index in [begin...end]
+			term = terms[index]
+			transpiled.push(
+				if term.type in ['var', 'number', 'boolean']
+					toNumber term, env
+				else
+					nonVars.push { index, term }
+					"_term_#{index}"
+			)
+
+		transpiled.push toNumber terms[terms.length - 1], env
+
+
+		expression = '[&]{\n'
+
+		nonVars.forEach ({ index, term }) ->
+			expression += "const auto _term_#{index} = #{toNumber term, env};\n"
+			return
+
+		expression += "return #{transpiled[0]}"
+
+		for i in [begin...end]
+			expression += " #{operator} #{transpiled[i]} && #{transpiled[i]}"
+
+		expression += " #{operator} #{transpiled[transpiled.length - 1]};\n"
+
+		expression += '}()'
+
+		if raw
+			"(#{expression})"
+		else
+			"makeBoolean(#{expression})"
 
 
 transpilers = {
@@ -124,11 +168,9 @@ transpilers = {
 
 	'*': makeOperator '*'
 
-	'<': ({ terms: [left, right] }, env, { raw }) ->
-		if raw
-			"(#{toNumber left, env} < #{toNumber right, env})"
-		else
-			"makeBoolean(#{toNumber left, env} < #{toNumber right, env})"
+	'<': makeRelational '<'
+
+	'>': makeRelational '>'
 
 	'null': -> 'Null'
 
