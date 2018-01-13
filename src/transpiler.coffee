@@ -17,12 +17,13 @@ builtIns = new Set [
 	'-'
 	'*'
 	'<'
+	'>'
 ]
 
 
 transpileBuiltIn = (name, args, env, options) ->
 	switch name
-		when '+', '-', '*', '<'
+		when '+', '-', '*', '<', '>'
 			transpile { type: name, terms: args }, env, options
 		else
 			throw ''
