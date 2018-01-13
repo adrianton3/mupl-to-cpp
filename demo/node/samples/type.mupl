@@ -1,0 +1,1 @@
+($list (number? 123) (number? null) (null? 123))

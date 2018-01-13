@@ -18,6 +18,11 @@ builtIns = new Set [
 	'*'
 	'<'
 	'>'
+	'null?'
+	'number?'
+	'boolean?'
+	'pair?'
+	'function?'
 ]
 
 
@@ -25,8 +30,10 @@ transpileBuiltIn = (name, args, env, options) ->
 	switch name
 		when '+', '-', '*', '<', '>'
 			transpile { type: name, terms: args }, env, options
+		when 'null?', 'number?', 'boolean?', 'pair?', 'function?'
+			transpile { type: name, expression: args[0] }, env, options
 		else
-			throw ''
+			throw "can not transpile as built-in #{name}"
 
 
 tryUnwrap = (conversion, matchingNodes) ->
@@ -40,7 +47,7 @@ tryUnwrap = (conversion, matchingNodes) ->
 toNumber = tryUnwrap 'getNumber', ['number', '+', '-', '*']
 
 
-toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', '>', 'null?']
+toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', '>', 'null?', 'number?', 'boolean?', 'pair?', 'function?']
 
 
 makeOperator = (operator) ->
@@ -100,6 +107,16 @@ makeRelational = (operator) ->
 			"(#{expression})"
 		else
 			"makeBoolean(#{expression})"
+
+
+makeTypeChecker = (checker) ->
+	({ expression }, env, { raw }) ->
+		check = "#{transpile expression, env}->#{checker}()"
+
+		if raw
+			check
+		else
+			"makeBoolean(#{check})"
 
 
 transpilers = {
@@ -180,11 +197,15 @@ transpilers = {
 
 	'null': -> 'Null'
 
-	'null?': ({ expression }, env, { raw }) ->
-		if raw
-			"#{transpile expression, env}->isNull()"
-		else
-			"makeBoolean(#{transpile expression, env}->isNull())"
+	'null?': makeTypeChecker 'isNull'
+
+	'number?': makeTypeChecker 'isNumber'
+
+	'boolean?': makeTypeChecker 'isBoolean'
+
+	'pair?': makeTypeChecker 'isPair'
+
+	'function?': makeTypeChecker 'isFunction'
 
 	'pair': ({ first, second }, env) ->
 		"makeValue(#{transpile first, env}, #{transpile second, env})"
@@ -198,7 +219,10 @@ transpilers = {
 
 
 transpile = (node, env, options = {}) ->
-	transpilers[node.type] node, env, options
+	if transpilers[node.type]?
+		transpilers[node.type] node, env, options
+	else
+		throw "can not transpile not of type #{node.type}"
 
 
 transpileRoot = (node) ->

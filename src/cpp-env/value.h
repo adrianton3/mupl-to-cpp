@@ -20,6 +20,10 @@ public:
     virtual NumericType getNumber() const = 0;
     virtual bool getBoolean() const = 0;
     virtual bool isNull() const = 0;
+    virtual bool isNumber() const = 0;
+    virtual bool isBoolean() const = 0;
+    virtual bool isPair() const = 0;
+    virtual bool isFunction() const = 0;
     virtual ValuePtr getFirst() const = 0;
     virtual ValuePtr getSecond() const = 0;
     virtual ValuePtr call(ValuePtr) const = 0;
@@ -43,6 +47,22 @@ public:
     }
 
     virtual bool isNull() const {
+        return false;
+    }
+
+    virtual bool isNumber() const {
+        return true;
+    }
+
+    virtual bool isBoolean() const {
+        return false;
+    }
+
+    virtual bool isPair() const {
+        return false;
+    }
+
+    virtual bool isFunction() const {
         return false;
     }
 
@@ -83,6 +103,22 @@ public:
         return false;
     }
 
+    virtual bool isNumber() const {
+        return false;
+    }
+
+    virtual bool isBoolean() const {
+        return true;
+    }
+
+    virtual bool isPair() const {
+        return false;
+    }
+
+    virtual bool isFunction() const {
+        return false;
+    }
+
     virtual ValuePtr getFirst() const {
         throw std::string { "Can not get the first member a number" };
     }
@@ -120,6 +156,22 @@ public:
         return true;
     }
 
+    virtual bool isNumber() const {
+        return false;
+    }
+
+    virtual bool isBoolean() const {
+        return false;
+    }
+
+    virtual bool isPair() const {
+        return false;
+    }
+
+    virtual bool isFunction() const {
+        return false;
+    }
+
     virtual ValuePtr getFirst() const {
         throw std::string { "Can not get the first member null" };
     }
@@ -151,6 +203,22 @@ public:
     }
 
     virtual bool isNull() const {
+        return false;
+    }
+
+    virtual bool isNumber() const {
+        return false;
+    }
+
+    virtual bool isBoolean() const {
+        return false;
+    }
+
+    virtual bool isPair() const {
+        return true;
+    }
+
+    virtual bool isFunction() const {
         return false;
     }
 
@@ -190,6 +258,22 @@ public:
 
     virtual bool isNull() const {
         return false;
+    }
+
+    virtual bool isNumber() const {
+        return false;
+    }
+
+    virtual bool isBoolean() const {
+        return false;
+    }
+
+    virtual bool isPair() const {
+        return false;
+    }
+
+    virtual bool isFunction() const {
+        return true;
     }
 
     virtual ValuePtr getFirst() const {
