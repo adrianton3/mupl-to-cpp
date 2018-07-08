@@ -4,6 +4,7 @@
 	var subs = {
 		'if': 3,
 		'let': 2,
+		'def': 2,
 		'lambda': 2,
 		'pair': 2,
 		'first': 1,
@@ -150,6 +151,53 @@
 		return list
 	}
 
+
+	function buildDef(def) {
+		// (def name expression)
+		if (def.children[1].type !== 'atom') {
+			throw new Error('def name must be an identifier')
+		}
+
+		return {
+			type: 'def',
+			name: def.children[1].token.value,
+			expression: buildAst(def.children[2]),
+		}
+	}
+
+	function buildProgram(program) {
+		// (program defs expression)
+		for (let i = 1; i < program.children.length - 1; i++) {
+			const child = program.children[i]
+
+			if (
+				child.token.type !== 'open' ||
+				child.children[0].type !== 'atom' ||
+				child.children[0].token.type !== 'identifier' ||
+				child.children[0].token.value !== 'def'
+			) {
+				throw new Error('program must contain a list of defs ended with an expression')
+			}
+		}
+
+		const lastChild = program.children[program.children.length - 1]
+
+		if (
+			lastChild.token.type === 'open' &&
+			lastChild.children[0].type === 'atom' &&
+			lastChild.children[0].token.type === 'identifier' &&
+			lastChild.children[0].token.value === 'def'
+		) {
+			throw new Error('last child of program must be an expression')
+		}
+
+		return {
+			type: 'program',
+			defs: program.children.slice(1, -1).map(buildDef),
+			expression: buildAst(lastChild),
+		}
+	}
+
 	function buildAst(tree) {
 		switch (tree.token.type) {
 			case 'number':
@@ -211,6 +259,10 @@
 						return buildLambda(tree);
 					case 'fun':
 						return buildFun(tree);
+					case 'program':
+						return buildProgram(tree);
+					case 'def':
+						return buildDef(tree);
 					default:
 						return buildCall(tree);
 				}

@@ -215,6 +215,9 @@ transpilers = {
 
 	'second': ({ expression }, env) ->
 		"#{transpile expression, env}->getSecond()"
+
+	'def': ({ name, expression }, env) ->
+		"const auto #{encodeIdentifier name} = #{transpile expression, env};"
 }
 
 
@@ -222,20 +225,55 @@ transpile = (node, env, options = {}) ->
 	if transpilers[node.type]?
 		transpilers[node.type] node, env, options
 	else
-		throw "can not transpile not of type #{node.type}"
+		throw "can not transpile node of type #{node.type}"
 
 
-transpileRoot = (node) ->
+transpileProgram = (program) ->
+	step = ({ code, env }, def) ->
+		newEnv = env.add def.name
+
+		{
+			code: """
+					#{code}
+
+					#{transpile def, newEnv}
+				"""
+			env: newEnv
+		}
+
+	result = program.defs.reduce step, { code: '', env: env.empty }
+
 	"""
 		#include <iostream>
 		#include "../../../src/cpp-env/value.h"
 
 		int main() {
-			ValuePtr result = #{transpile node, env.empty};
+			#{result.code}
+			ValuePtr result = #{transpile program.expression, result.env};
 			std::cout << result->serialize();
 			return 0;
 		}
 	"""
+
+
+transpileExpression = (expression) ->
+	"""
+		#include <iostream>
+		#include "../../../src/cpp-env/value.h"
+
+		int main() {
+			ValuePtr result = #{transpile expression, env.empty};
+			std::cout << result->serialize();
+			return 0;
+		}
+	"""
+
+
+transpileRoot = (node) ->
+	if node.type == 'program'
+		transpileProgram node
+	else
+		transpileExpression node
 
 
 global = if typeof module != "undefined" and module.exports then module.exports else window
