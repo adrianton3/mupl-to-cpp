@@ -10,6 +10,8 @@ class Value;
 
 using ValuePtr = const std::shared_ptr<Value>;
 
+using ValueMutPtr = std::shared_ptr<Value>;
+
 using UnaryFunction = std::function<ValuePtr (ValuePtr)>;
 
 

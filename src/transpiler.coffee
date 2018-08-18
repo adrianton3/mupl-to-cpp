@@ -12,17 +12,20 @@ else
 	window
 
 
-builtIns = new Set [
-	'+'
-	'-'
-	'*'
-	'<'
-	'>'
-	'null?'
-	'number?'
-	'boolean?'
-	'pair?'
-	'function?'
+builtIns = new Map [
+	['+', { returnType: 'number' }]
+	['-', { returnType: 'number' }]
+	['*', { returnType: 'number' }]
+	['<', { returnType: 'boolean' }]
+	['>', { returnType: 'boolean' }]
+	['null?', { returnType: 'boolean' }]
+	['number?', { returnType: 'boolean' }]
+	['boolean?', { returnType: 'boolean' }]
+	['pair?', { returnType: 'boolean' }]
+	['function?', { returnType: 'boolean' }]
+	['pair', { returnType: 'any' }]
+	['first', { returnType: 'any' }]
+	['second', { returnType: 'any' }]
 ]
 
 
@@ -32,22 +35,33 @@ transpileBuiltIn = (name, args, env, options) ->
 			transpile { type: name, terms: args }, env, options
 		when 'null?', 'number?', 'boolean?', 'pair?', 'function?'
 			transpile { type: name, expression: args[0] }, env, options
+		when 'pair'
+			transpile { type: name, first: args[0], second: args[1] }, env, options
+		when 'first', 'second'
+			transpile { type: name, expression: args[0] }, env, options
 		else
 			throw "can not transpile as built-in #{name}"
 
 
-tryUnwrap = (conversion, matchingNodes) ->
+tryUnwrap = (conversion, matchingNodes, returnType) ->
 	(node, env) ->
-		if (matchingNodes.includes node.type) or ((node.type == 'call') and (node.callee.type == 'var') and (builtIns.has node.callee.name) and not (env.has node.callee.name))
+		if (matchingNodes.includes node.type) or
+			(
+				(node.type == 'call') and
+				(node.callee.type == 'var') and
+				(builtIns.has node.callee.name) and
+				not (env.has node.callee.name) and
+				(builtIns.get node.callee.name).returnType == returnType
+			)
 			transpile node, env, { raw: true }
 		else
 			"#{transpile node, env}->#{conversion}()"
 			
 			
-toNumber = tryUnwrap 'getNumber', ['number', '+', '-', '*']
+toNumber = tryUnwrap 'getNumber', ['number', '+', '-', '*'], 'number'
 
 
-toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', '>', 'null?', 'number?', 'boolean?', 'pair?', 'function?']
+toBoolean = tryUnwrap 'getBoolean', ['boolean', '<', '>', 'null?', 'number?', 'boolean?', 'pair?', 'function?'], 'boolean'
 
 
 makeOperator = (operator) ->
@@ -146,9 +160,13 @@ transpilers = {
 		encodeIdentifier name
 
 	'lambda': ({ parameters, body }, env) ->
-		step = (prev, parameter) ->
+		step = (prev, parameter, index) ->
+			partials = (parameters.slice 0, index)
+				.map (parameter) -> ",#{parameter}"
+				.join ' '
+
 			"""
-				makeValue([=](auto #{encodeIdentifier parameter}) {
+				makeValue([& #{partials}](auto #{encodeIdentifier parameter}) {
 					return #{prev};
 				})
 			"""
@@ -217,7 +235,7 @@ transpilers = {
 		"#{transpile expression, env}->getSecond()"
 
 	'def': ({ name, expression }, env) ->
-		"const auto #{encodeIdentifier name} = #{transpile expression, env};"
+		"#{encodeIdentifier name} = #{transpile expression, env};"
 }
 
 
@@ -243,11 +261,14 @@ transpileProgram = (program) ->
 
 	result = program.defs.reduce step, { code: '', env: env.empty }
 
+	declarations = program.defs.map ({ name }) -> "ValueMutPtr #{encodeIdentifier name};"
+
 	"""
 		#include <iostream>
 		#include "../../../src/cpp-env/value.h"
 
 		int main() {
+			#{declarations.join '\n'}
 			#{result.code}
 			ValuePtr result = #{transpile program.expression, result.env};
 			std::cout << result->serialize();

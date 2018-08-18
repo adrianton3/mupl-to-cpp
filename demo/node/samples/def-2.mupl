@@ -1,0 +1,4 @@
+(program
+    (def n 123)
+    (def plus-n (lambda (a) (+ a n)))
+    (plus-n 1))
