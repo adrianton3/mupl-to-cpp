@@ -1,0 +1,7 @@
+(program
+    (def generate (lambda (count)
+        (if (< count 1)
+            null
+            (pair count (generate (- count 1))))))
+
+    (generate 10))
