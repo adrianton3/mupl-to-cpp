@@ -247,30 +247,20 @@ transpile = (node, env, options = {}) ->
 
 
 transpileProgram = (program) ->
-	step = ({ code, env }, def) ->
-		newEnv = env.add def.name
+	topEnv = env.empty.add (program.defs.map ({ name }) -> name)...
 
-		{
-			code: """
-					#{code}
+	defsTranspiled = program.defs.map (def) -> transpile def, topEnv
 
-					#{transpile def, newEnv}
-				"""
-			env: newEnv
-		}
-
-	result = program.defs.reduce step, { code: '', env: env.empty }
-
-	declarations = program.defs.map ({ name }) -> "ValueMutPtr #{encodeIdentifier name};"
+	declarations = program.defs.map ({ name }) -> encodeIdentifier name
 
 	"""
 		#include <iostream>
 		#include "../../../src/cpp-env/value.h"
 
 		int main() {
-			#{declarations.join '\n'}
-			#{result.code}
-			ValuePtr result = #{transpile program.expression, result.env};
+			ValueMutPtr #{declarations.join ', '};
+			#{defsTranspiled.join '\n'}
+			ValuePtr result = #{transpile program.expression, topEnv};
 			std::cout << result->serialize();
 			return 0;
 		}

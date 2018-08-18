@@ -1,0 +1,12 @@
+(program
+    (def generate (lambda (count acc)
+        (if (< count 1)
+            acc
+            (generate (- count 1) (pair count acc)))))
+
+    (def sum (lambda (nums acc)
+        (if (pair? nums)
+            (sum (second nums) (+ acc (first nums)))
+            acc)))
+
+    (sum (generate 10 null) 0))
